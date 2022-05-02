@@ -16,7 +16,7 @@ local DataService = Knit.CreateService{
 	Name = 'DataService';
 	cached_Profiles = {};
 	DataServiceModule = ProfileService;
-	Data_Version = 'REDUX';
+	Data_Version = 'v1'; -- Change this whenever you make major changes to your data
 	DataLoaded = {};
 };
 
@@ -75,7 +75,7 @@ local function PlayerAdded(Player)
 			
 			DataService.DataLoaded[Player.Name]:Destroy();
 			
-			Player:Kick'Your profile has been reloaded from somewhere else, please rejoin. (nice try at duping :3)';
+			Player:Kick'Your profile has been reloaded from somewhere else, please rejoin.';
 		end);
 	else
 		DataService.DataLoaded[Player.Name]:Destroy();
@@ -102,10 +102,6 @@ local function PlayerRemoving(Player)
 	local PlayerDataProfile = DataService.cached_Profiles[Player];
 	if (PlayerDataProfile ~= nil) then
 		PlayerDataProfile:Release();
-		if (#game.Players:GetChildren() > 0) then
-
-		end;
-		
 	end;
 end;
 
