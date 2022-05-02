@@ -14,7 +14,9 @@ local ProfileService = require(script:WaitForChild("ProfileService"));
 
 local DataService = Knit.CreateService{
 	Name = 'DataService';
-	cached_Profiles = {};
+
+	cached_Profiles = {}; -- {[Player] = Profile}
+	
 	DataServiceModule = ProfileService;
 	Data_Version = 'v1'; -- Change this whenever you make major changes to your data
 	DataLoaded = {};
@@ -28,12 +30,10 @@ local function OnCriticalStateSignalRecieved(IsCritical)
 	warn('[DataService] ProfileService issue: DataStore issues are now',IsCritical and 'critical.' or 'okay.')
 end;
 
--- TODO Make this an event.
 local function PlayerDataLoaded(Player)
 	local PlayerDataProfile = DataService.cached_Profiles[Player];
 	PlayerDataProfile:Reconcile();
 
-	
 	local Meta = DataService:FetchProfileMetaData(PlayerDataProfile);
 	
 	if (not PlayerDataProfile:GetMetaTag('Data_Version')) then
@@ -44,7 +44,7 @@ local function PlayerDataLoaded(Player)
 		-- Convert any data here
 	end;
 	
-	spawn(function()
+	task.spawn(function()
 		repeat
 			
 			task.wait();
@@ -52,7 +52,9 @@ local function PlayerDataLoaded(Player)
 			local PlayerDataProfile = DataService.cached_Profiles[Player];
 			
 			if (PlayerDataProfile ~= nil) then
-				-- Update anything like leaderstats here
+				--[[
+					Update anything like leaderstats here
+				]]
 			else
 				-- Data no longer exists
 				break;
@@ -72,9 +74,7 @@ local function PlayerAdded(Player)
 	if (PlayerDataProfile ~= nil) then
 		PlayerDataProfile:ListenToRelease(function() 
 			DataService.cached_Profiles[Player] = nil;
-			
 			DataService.DataLoaded[Player.Name]:Destroy();
-			
 			Player:Kick'Your profile has been reloaded from somewhere else, please rejoin.';
 		end);
 	else
@@ -105,43 +105,53 @@ local function PlayerRemoving(Player)
 	end;
 end;
 
+-- Gets a mock ProfileStore
 function DataService:GetMockProfileStore(Name, DefaultData)
 	return self.DataServiceModule.GetProfileStore(Name, DefaultData).Mock;
 end;
 
+-- Gets a ProfileStore
 function DataService:GetProfileStore(Name, DefaultData)
 	local Profile = self.DataServiceModule.GetProfileStore(Name, DefaultData);
 	return Profile;
 end;
 
+-- Views a player's profile. Use this if you are not modifying the profile
 function DataService:ViewProfileAsync(Profile, Player: Player)
 	return Profile:ViewProfileAsync("PLR."..Player.UserId);
 end;
 
+-- Loads a player's profile. Use this if yo uare modifying the profile.
 function DataService:LoadProfileAsync(Profile, Player)
 	return Profile:LoadProfileAsync("PLR."..Player.UserId, "ForceLoad");
 end;
 
+-- Wipes a player's profile, resetting it to default.
 function DataService:WipeProfileAsync(Profile, Player)
 	return Profile:WipeProfileAsync("PLR."..Player.UserId);
 end;
 
+-- Gets the MetaData of a profile.
 function DataService:FetchProfileMetaData(Profile)
 	return Profile.MetaData;
 end;
 
+-- Sets a MetaTag of a profile.
 function DataService:SetMetaTagOfProfile(Profile, TagName: string, Value)
 	Profile:SetMetaTag(TagName, Value);
 end;
 
+-- Gets all profiles that are currently loaded.
 function DataService:GetCachedProfiles()
 	return self.cached_Profiles;
 end;
 
+-- Gets a profile currently loaded based on player.
 function DataService:GetProfile(Player)
 	return self:GetCachedProfiles()[Player];
 end;
 
+-- Views an offline profile. Don't use this, I only have it here incase someone wants to patch this up.
 function DataService:ViewProfileOfOfflineProfile(Username: string)
 	local Done, ID = pcall(game.Players.GetUserIdFromNameAsync, game.Players, Username);
 	
@@ -162,7 +172,7 @@ function DataService:ViewProfileOfOfflineProfile(Username: string)
 	end;
 end;
 
--- TODO-Remove-this-if-you-do-not-want-the-client-to-fetch-data 
+-- Gives the client their profile's data.
 function DataService.Client:GetData(Player: Player)
     local Profile = self:GetProfile(Player);
 
@@ -170,6 +180,24 @@ function DataService.Client:GetData(Player: Player)
         return Profile.Data;
     end;
 end;
+
+--[[
+	Sets the client data to whatever is passed here.
+
+	**Do not to use this.** 
+
+	If there is any data you want to update from the client, make it its own method.
+	For example, if you had options, you can pass the options to the client and then
+	when you want to save them, pass them from the client to here and update
+	the data accordingly.
+]]
+-- function DataService.Client:UpdateData(Player: Player, Data)
+-- 	local Profile = self:GetProfile(Player);
+
+--     if (Profile) then
+--         Profile.Data = Data;
+--     end;
+-- end;
 
 function DataService:KnitStart()
 	for _, Player in ipairs(game.Players:GetPlayers()) do
